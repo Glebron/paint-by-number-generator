@@ -1,11 +1,13 @@
+
 from flask import Flask, request, send_file
 import cv2
 import numpy as np
 import os
+import zipfile
 
 app = Flask(__name__)
 
-def stylize_image(image_path, output_path):
+def stylize_image(image_path, output_color_path, output_outline_path):
     img = cv2.imread(image_path)
     img = cv2.resize(img, (1024, int(img.shape[0] * 1024 / img.shape[1])))
 
@@ -14,25 +16,27 @@ def stylize_image(image_path, output_path):
 
     # === Step 2: Preserve detail and smooth ===
     detail = cv2.edgePreservingFilter(img_boosted, flags=1, sigma_s=70, sigma_r=0.3)
-    smooth = cv2.bilateralFilter(detail, d=7, sigmaColor=45, sigmaSpace=45)
+    smooth = cv2.bilateralFilter(detail, d=9, sigmaColor=55, sigmaSpace=55)
 
-    # === Step 3: Quantize with moderate K ===
+    # === Step 3: Color Quantization ===
     Z = smooth.reshape((-1, 3)).astype(np.float32)
-    K = 9  # Slightly more detail than 8, but less messy than 12
+    K = 6  # Fewer regions = cleaner shapes
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
     _, labels, centers = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
     quantized = centers[labels.flatten()].reshape(img.shape).astype(np.uint8)
 
-    # === Step 4: Thin clean edges (optional) ===
-    gray = cv2.cvtColor(smooth, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 60, 130)
-    edges_inv = cv2.bitwise_not(edges)
-    edges_bgr = cv2.cvtColor(edges_inv, cv2.COLOR_GRAY2BGR)
+    # === Step 4: Outline Extraction ===
+    gray_quantized = cv2.cvtColor(quantized, cv2.COLOR_BGR2GRAY)
+    contours, _ = cv2.findContours(gray_quantized, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    outline = np.ones_like(gray_quantized) * 255
+    cv2.drawContours(outline, contours, -1, (0,), thickness=1)
 
-    # === Step 5: Final blend ===
-    cartoon = cv2.bitwise_and(quantized, edges_bgr)
+    # === Step 5a: Colored Reference Image ===
+    cartoon = quantized.copy()
+    cv2.imwrite(output_color_path, cartoon)
 
-    cv2.imwrite(output_path, cartoon)
+    # === Step 5b: Pure Outline on White Background ===
+    cv2.imwrite(output_outline_path, outline)
 
 @app.route('/stylize', methods=['POST'])
 def stylize():
@@ -41,10 +45,17 @@ def stylize():
         return 'No file uploaded', 400
 
     input_path = 'input.png'
-    output_path = 'stylized.png'
+    output_color = 'output_colored.png'
+    output_outline = 'output_outline.png'
     file.save(input_path)
-    stylize_image(input_path, output_path)
-    return send_file(output_path, mimetype='image/png')
+    stylize_image(input_path, output_color, output_outline)
+
+    zip_path = 'stylized_pack.zip'
+    with zipfile.ZipFile(zip_path, 'w') as zipf:
+        zipf.write(output_color)
+        zipf.write(output_outline)
+
+    return send_file(zip_path, mimetype='application/zip', as_attachment=True)
 
 if __name__ == '__main__':
     app.run(port=8001)
