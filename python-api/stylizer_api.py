@@ -1,4 +1,3 @@
-
 from flask import Flask, request, send_file
 import cv2
 import numpy as np
@@ -20,23 +19,24 @@ def stylize_image(image_path, output_color_path, output_outline_path):
 
     # === Step 3: Color Quantization ===
     Z = smooth.reshape((-1, 3)).astype(np.float32)
-    K = 6  # Fewer regions = cleaner shapes
+    K = 12  # More color detail
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
-    _, labels, centers = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    _, labels, centers = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
     quantized = centers[labels.flatten()].reshape(img.shape).astype(np.uint8)
 
-    # === Step 4: Outline Extraction ===
+    # === Step 4: Find Contours from quantized grayscale ===
     gray_quantized = cv2.cvtColor(quantized, cv2.COLOR_BGR2GRAY)
-    contours, _ = cv2.findContours(gray_quantized, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    outline = np.ones_like(gray_quantized) * 255
-    cv2.drawContours(outline, contours, -1, (0,), thickness=1)
+    blurred = cv2.GaussianBlur(gray_quantized, (3, 3), 0)
+    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # === Step 5a: Colored Reference Image ===
-    cartoon = quantized.copy()
-    cv2.imwrite(output_color_path, cartoon)
+    cv2.imwrite(output_color_path, quantized)
 
-    # === Step 5b: Pure Outline on White Background ===
-    cv2.imwrite(output_outline_path, outline)
+    # === Step 5b: White canvas with black outlines ===
+    white_canvas = np.ones_like(gray_quantized) * 255
+    cv2.drawContours(white_canvas, contours, -1, (0,), thickness=2)
+    cv2.imwrite(output_outline_path, white_canvas)
 
 @app.route('/stylize', methods=['POST'])
 def stylize():
