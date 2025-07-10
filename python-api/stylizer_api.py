@@ -34,7 +34,7 @@ def stylize_image(image_path, output_color_path, output_outline_path):
     gray_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
     # Осветляем, если нужно (ближе к белому)
-    opacity = 0.8  # 0 = original gray, 1 = full white
+    opacity = 0.6 # 0 = original gray, 1 = full white
     white = np.full_like(gray_bgr, 255)
     blended = cv2.addWeighted(gray_bgr, 1 - opacity, white, opacity, 0)
 
