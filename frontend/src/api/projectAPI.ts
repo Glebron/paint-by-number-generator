@@ -16,24 +16,16 @@ export const createProject = async (project: {
   return response.data;
 };
 
-export const processProject = async (
-  projectId: number,
-  file: File
-): Promise<{ processedImageUrl: string }> => {
+export const processProject = async (projectId: number, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await axios.post(
-    `http://localhost:3000/project/${projectId}/process`,
-    formData,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }
-  );
+  const response = await axios.post(`${API_URL}/project/${projectId}/process`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 
   return response.data;
 };
-
 
 export const uploadImage = async (file: File) => {
   const formData = new FormData();
