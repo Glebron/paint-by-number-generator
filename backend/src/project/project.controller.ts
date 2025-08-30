@@ -3,6 +3,7 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,15 +25,30 @@ export class ProjectController {
           callback(null, uniqueName);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // ✅ Limit to 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|webp/;
+        const ext = extname(file.originalname).toLowerCase();
+        if (!allowedTypes.test(ext)) {
+          return cb(new BadRequestException('Unsupported file type'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
   async process(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
     const imagePath = join(__dirname, '..', '..', 'uploads', file.filename);
     const outputFileName = `processed-${Date.now()}`;
 
     const result = await this.processingService.processImage(
       imagePath,
-      25, // or any fixed numColors
+      25, // fixed numColors
       outputFileName,
     );
 
