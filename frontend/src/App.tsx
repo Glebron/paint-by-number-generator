@@ -9,14 +9,10 @@ import {
   Typography,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { useProjects } from './hooks/useProjects';
 import { processProject, uploadImage, createProject } from './api/projectAPI';
 import backgroundImage from './assets/background.png';
 
 function App() {
-  const { projects } = useProjects();
-
-  const [file, setFile] = useState<File | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
   const [processing, setProcessing] = useState(false);
@@ -27,7 +23,6 @@ function App() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0];
     if (selectedFile) {
-      setFile(selectedFile);
       try {
         const imageUrl = await uploadImage(selectedFile);
         setUploadedImageUrl(imageUrl);
