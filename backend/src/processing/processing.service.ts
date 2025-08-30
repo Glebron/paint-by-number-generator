@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as unzipper from 'unzipper';
-import * as FormData from 'form-data';
+import FormData from 'form-data';
 import axios from 'axios';
 
 const sharp = require('sharp');
@@ -54,10 +54,14 @@ export class ProcessingService {
     const form = new FormData();
     form.append('file', fs.createReadStream(imagePath));
 
-    const response = await axios.post('http://localhost:8001/stylize', form, {
-      headers: form.getHeaders(),
-      responseType: 'arraybuffer',
-    });
+const response = await axios.post(
+  `${process.env.FLASK_API_URL}/stylize`,
+  form,
+  {
+    headers: form.getHeaders(),
+    responseType: 'arraybuffer',
+  }
+);
 
     const zipBuffer = Buffer.from(response.data);
     const tempDir = path.dirname(imagePath);

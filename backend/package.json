@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "20": "^3.1.9",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "*",
@@ -33,6 +34,7 @@
     "jimp": "^1.6.0",
     "marching-squares": "^1.0.0",
     "multer": "^2.0.1",
+    "nvm": "^0.0.4",
     "potrace": "^2.1.8",
     "prisma": "^6.9.0",
     "quantize": "^1.0.2",

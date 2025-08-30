@@ -5,7 +5,6 @@ import zipfile
 
 app = Flask(__name__)
 
-
 def stylize_image(image_path, output_color_path, output_outline_path):
     img = cv2.imread(image_path)
     img = cv2.resize(img, (1024, int(img.shape[0] * 1024 / img.shape[1])))
@@ -33,18 +32,45 @@ def stylize_image(image_path, output_color_path, output_outline_path):
     gray = cv2.cvtColor(quantized, cv2.COLOR_BGR2GRAY)
     gray_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
-    # Осветляем, если нужно (ближе к белому)
-    opacity = 0.6 # 0 = original gray, 1 = full white
+    # Осветляем (ближе к белому)
+    opacity = 0.6
     white = np.full_like(gray_bgr, 255)
     blended = cv2.addWeighted(gray_bgr, 1 - opacity, white, opacity, 0)
+
+    # Добавляем номера для каждого сегмента
+    label_img = labels.reshape(img.shape[:2])
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    number_map = {}
+
+    for color_id in range(K):
+        mask = (label_img == color_id).astype(np.uint8)
+        num_labels, cc_labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
+
+        for i in range(1, num_labels):
+            area = stats[i, cv2.CC_STAT_AREA]
+            if area < 80:
+                continue
+            cX, cY = int(centroids[i][0]), int(centroids[i][1])
+            number = number_map.get(color_id)
+            if number is None:
+                number = len(number_map) + 1
+                number_map[color_id] = number
+            cv2.putText(
+                blended,
+                str(number),
+                (cX - 3, cY + 3),  # slight adjustment
+                font,
+                0.2,              # smaller font
+                (30, 30, 30),
+                1,
+                cv2.LINE_AA
+            )
 
     # Сохраняем стилизованное изображение
     cv2.imwrite(output_color_path, blended)
 
-    # Пустой контур
     blank_outline = np.full((img.shape[0], img.shape[1]), 255, dtype=np.uint8)
     cv2.imwrite(output_outline_path, blank_outline)
-
 
 @app.route('/stylize', methods=['POST'])
 def stylize():
