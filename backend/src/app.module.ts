@@ -8,8 +8,8 @@ import { UploadModule } from './upload/upload.module';
 import { ProcessingService } from './processing/processing.service';
 
 @Module({
-  imports: [ProjectModule, PrismaModule, UploadModule],
+  imports: [ProjectModule, /* PrismaModule, */ UploadModule],
   controllers: [AppController],
-  providers: [AppService, PrismaService, ProcessingService],
+  providers: [AppService, /* PrismaService, */ ProcessingService],
 })
 export class AppModule {}
