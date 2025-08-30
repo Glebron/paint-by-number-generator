@@ -1,24 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ProcessingService } from '../processing/processing.service';
 import * as path from 'path';
+import { Express } from 'express';
 
 @Injectable()
 export class ProjectService {
-  constructor(private processingService: ProcessingService) {}
+  constructor(private readonly processingService: ProcessingService) {}
 
-  async processProject(_id: number) {
-    const timestamp = Date.now();
-    const dummyImagePath = path.join(__dirname, '..', '..', 'uploads', 'example.jpg');
-    const outputFileName = `processed-${timestamp}`;
+  async processUploadedFile(file: Express.Multer.File): Promise<{ processedImageUrl: string }> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const imagePath = path.join(__dirname, '..', '..', 'uploads', file.filename);
+    const outputFileName = `processed-${Date.now()}`;
 
     const { processedImageUrl } = await this.processingService.processImage(
-      dummyImagePath,
+      imagePath,
       25,
       outputFileName
     );
 
     return {
-      message: 'Processing completed (mocked)',
       processedImageUrl,
     };
   }

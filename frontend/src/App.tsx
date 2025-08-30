@@ -9,22 +9,25 @@ import {
   Typography,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { processProject, uploadImage, createProject } from './api/projectAPI';
+import { uploadImage, createProject, processProject } from './api/projectAPI';
 import backgroundImage from './assets/background.png';
 
 function App() {
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ✅ NEW
   const [processing, setProcessing] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
   const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const selectedFile = acceptedFiles[0];
-    if (selectedFile) {
+    const file = acceptedFiles[0];
+    if (file) {
+      setSelectedFile(file); // ✅ Store the file
+
       try {
-        const imageUrl = await uploadImage(selectedFile);
+        const imageUrl = await uploadImage(file);
         setUploadedImageUrl(imageUrl);
         setUploadSuccess(true);
 
@@ -51,10 +54,10 @@ function App() {
   });
 
   const handleProcess = async () => {
-    if (!currentProjectId) return;
+    if (!currentProjectId || !selectedFile) return; // ✅ Ensure file is present
     setProcessing(true);
     try {
-      const response = await processProject(currentProjectId);
+      const response = await processProject(currentProjectId, selectedFile); // ✅ Pass file
       setProcessedImageUrl(`http://localhost:3000${response.processedImageUrl}`);
     } catch (error) {
       console.error('Processing failed:', error);
@@ -81,7 +84,7 @@ function App() {
         backgroundBlendMode: 'lighten',
       }}
     >
-      {/* Drag & Drop */}
+      {/* Drop zone */}
       <Box
         {...getRootProps()}
         border="1px dashed #333"
@@ -162,7 +165,7 @@ function App() {
         </>
       )}
 
-      {/* Final Processed Image */}
+      {/* Final Image */}
       {processedImageUrl && !processing && (
         <Box
           component="img"
