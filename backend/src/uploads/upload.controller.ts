@@ -8,7 +8,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
-import { File as MulterFile } from 'multer';
+import { Express } from 'express';
 
 
 @Controller('upload')
@@ -25,7 +25,7 @@ export class UploadController {
       }),
     }),
   )
-  uploadFile(@UploadedFile() file: MulterFile) {
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
     return {
       imageUrl: `http://localhost:3000/uploads/${file.filename}`,
     };
